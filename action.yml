@@ -40,4 +40,4 @@ outputs:
 
 runs:
   using: docker
-  image: "docker://chuhlomin/instapaper2rss:latest"
+  image: "ghcr.io/chuhlomin/instapaper2rss:latest"
