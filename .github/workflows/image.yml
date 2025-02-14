@@ -1,0 +1,31 @@
+name: image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/image.yml
+  workflow_dispatch:
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and push to CR
+        uses: chuhlomin/actions/docker-build-push@main
+        env:
+          DOCKER_IMAGE: ghcr.io/chuhlomin/instapaper2rss
+        with:
+          registry: ghcr.io
+          username: chuhlomin
+          password: ${{ secrets.PKG_TOKEN }}
+          image_name: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          platforms: linux/amd64

@@ -1,0 +1,43 @@
+name: Instapaper to RSS
+description: Pulls articles from Instapaper and publish RSS feed
+
+author: Constantine Chukhlomin <mail@chuhlomin.com>
+
+branding:
+  icon: file-text
+  color: purple
+
+inputs:
+  storage_path:
+    description: Path to BoldDB file
+    required: false
+    default: instapaper.db
+
+  feed_path:
+    description: Path to RSS feed file
+    required: false
+    default: atom.xml
+
+  instapaper_consumer_key:
+    description: Instapaper Client consumer key
+    required: true
+
+  instapaper_consumer_secret:
+    description: Instapaper Client consumer secret
+    required: true
+
+  instapaper_token:
+    description: Instapaper user token
+    required: true
+
+  instapaper_token_secret:
+    description: Instapaper user token secret
+    required: true
+
+outputs:
+  new_bookmarks_count:
+    description: Number of new bookmarks added to the feed
+
+runs:
+  using: docker
+  image: "docker://chuhlomin/instapaper2rss:latest"

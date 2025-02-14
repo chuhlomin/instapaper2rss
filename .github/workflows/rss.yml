@@ -1,0 +1,62 @@
+# Triggered on schedule to run every 24 hours.
+# Pulls articles from Instapaper and publish RSS feed.
+name: rss
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC = 08:00 EST
+  workflow_dispatch:
+
+jobs:
+  rss:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download state from R2
+        uses: alsosee/r2action@main
+        with:
+          account_id: ${{ secrets.R2_ACCOUNT_ID }}
+          access_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          access_key_secret: ${{ secrets.R2_ACCESS_KEY_SECRET }}
+          bucket: instapaper
+          operation: get
+          key: instapaper.db
+          file: instapaper.db
+
+      - name: Run action
+        uses: ./ # Uses an action in the root directory
+        id: instapaper2rss
+        with:
+          storage_path: instapaper.db
+          feed_path: atom.xml
+          instapaper_consumer_key: ${{ secrets.INSTAPAPER_CONSUMER_KEY }}
+          instapaper_consumer_secret: ${{ secrets.INSTAPAPER_CONSUMER_SECRET }}
+          instapaper_token: ${{ secrets.INSTAPAPER_TOKEN }}
+          instapaper_token_secret: ${{ secrets.INSTAPAPER_TOKEN_SECRET }}
+
+      - name: Upload feed to R2
+        if: steps.instapaper2rss.outputs.new_bookmarks_count > 0
+        uses: alsosee/r2action@main
+        with:
+          account_id: ${{ secrets.R2_ACCOUNT_ID }}
+          access_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          access_key_secret: ${{ secrets.R2_ACCESS_KEY_SECRET }}
+          bucket: instapaper
+          operation: put
+          key: atom.xml
+          file: atom.xml
+
+      - name: Upload state to R2
+        if: steps.instapaper2rss.outputs.new_bookmarks_count > 0
+        uses: alsosee/r2action@main
+        with:
+          account_id: ${{ secrets.R2_ACCOUNT_ID }}
+          access_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          access_key_secret: ${{ secrets.R2_ACCESS_KEY_SECRET }}
+          bucket: instapaper
+          operation: put
+          key: instapaper.db
+          file: instapaper.db
