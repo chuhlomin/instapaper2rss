@@ -57,7 +57,7 @@ The project consists of several packages:
 To run locally and get your Instapaper tokens:
 
 ```bash
-go run main.go -username your_username -password your_password
+go run ./... -username your_username -password your_password
 ```
 
 This will output your token and token secret which you can then use in the GitHub Actions secrets.
