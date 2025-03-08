@@ -5,6 +5,7 @@ import (
 	"crypto/sha1" // #nosec
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -151,7 +152,14 @@ func (c *Client) GetBookmarkText(bookmarkID int) (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		err := fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+
+		b, err2 := io.ReadAll(resp.Body)
+		if err2 != nil {
+			return "", errors.Join(err, fmt.Errorf("failed to read response body: %w", err2))
+		}
+
+		return "", errors.Join(err, fmt.Errorf("body: %s", string(b)))
 	}
 
 	b, err := io.ReadAll(resp.Body)
