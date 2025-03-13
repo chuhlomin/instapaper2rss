@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -40,6 +41,37 @@ type Tag struct {
 	ID   int    `json:"id"`
 }
 
+type RetryConfig struct {
+	MaxRetries  int
+	RetryDelay  time.Duration
+	MaxDelay    time.Duration
+	Multiplier  float64
+	ShouldRetry func(resp *http.Response, err error) bool
+}
+
+var defaultRetryConfig = RetryConfig{
+	MaxRetries: 0,
+	RetryDelay: 1 * time.Second,
+	MaxDelay:   30 * time.Second,
+	Multiplier: 2.0,
+	ShouldRetry: func(resp *http.Response, err error) bool {
+		// Retry on network errors
+		if err != nil {
+			return true
+		}
+		// Retry on 403 Forbidden and 429 Too Many Requests
+		if resp.StatusCode == http.StatusForbidden ||
+			resp.StatusCode == http.StatusTooManyRequests {
+			return true
+		}
+		// Retry on 5xx server errors
+		if resp.StatusCode >= 500 && resp.StatusCode < 600 {
+			return true
+		}
+		return false
+	},
+}
+
 type Client struct {
 	httpClient     *http.Client
 	getTimestamp   func() string
@@ -51,6 +83,7 @@ type Client struct {
 	tokenSecret    string
 	userAgent      string
 	timeout        time.Duration
+	retryConfig    RetryConfig
 }
 
 func NewClient(consumerKey, consumerSecret string, options ...Option) (*Client, error) {
@@ -68,6 +101,7 @@ func NewClient(consumerKey, consumerSecret string, options ...Option) (*Client, 
 		userAgent:      "go/" + runtime.Version() + " chuhlomin/instapaper2rss/v0.1",
 		getNonce:       getNonce,
 		getTimestamp:   getTimestamp,
+		retryConfig:    defaultRetryConfig,
 	}
 
 	for _, option := range options {
@@ -208,25 +242,44 @@ func (c *Client) callAPI(endpoint string, params map[string]string) (*http.Respo
 		req.Body = io.NopCloser(strings.NewReader(form.Encode()))
 	}
 
-	return c.httpClient.Do(req)
+	return c.doWithRetry(req)
+}
 
-	// resp, err := c.httpClient.PostForm(endpoint, url.Values{})
-	// if err != nil {
-	// 	return fmt.Errorf("HTTP request failed: %w", err)
-	// }
-	// defer resp.Body.Close()
+func (c *Client) doWithRetry(req *http.Request) (*http.Response, error) {
+	var resp *http.Response
+	var err error
 
-	// body, err := io.ReadAll(resp.Body)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to read response body: %w", err)
-	// }
+	delay := c.retryConfig.RetryDelay
 
-	// err = json.Unmarshal(body, &response)
-	// if err != nil {
-	// 	return fmt.Errorf("JSON parsing failed: %w, body: %s", err, string(body))
-	// }
+	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
+		if attempt > 0 {
+			log.Printf("Retry attempt %d for request to %s", attempt, req.URL.Path)
+			time.Sleep(delay)
 
-	// return nil
+			req = req.Clone(req.Context())
+
+			delay = time.Duration(float64(delay) * c.retryConfig.Multiplier)
+			if delay > c.retryConfig.MaxDelay {
+				delay = c.retryConfig.MaxDelay
+			}
+		}
+
+		resp, err = c.httpClient.Do(req)
+		if err == nil && resp != nil && !c.retryConfig.ShouldRetry(resp, err) {
+			break
+		}
+
+		if attempt == c.retryConfig.MaxRetries {
+			break
+		}
+
+		// Close the response if we're going to retry
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}
+
+	return resp, err
 }
 
 func (c *Client) generateSignature(req *http.Request, reqParams, oauthParams map[string]string) (string, error) {

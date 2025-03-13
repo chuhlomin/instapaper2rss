@@ -84,7 +84,10 @@ func createInstapaperClient() (*instapaper.Client, error) {
 	token := getEnvVar("INSTAPAPER_TOKEN", "")
 	tokenSecret := getEnvVar("INSTAPAPER_TOKEN_SECRET", "")
 
-	opts := []instapaper.Option{instapaper.WithTimeout(5 * time.Second)}
+	opts := []instapaper.Option{
+		instapaper.WithTimeout(5 * time.Second),
+		instapaper.WithRetry(instapaper.RetryConfig{MaxRetries: 5}),
+	}
 
 	if token != "" && tokenSecret != "" {
 		opts = append(opts, instapaper.WithToken(token, tokenSecret))
