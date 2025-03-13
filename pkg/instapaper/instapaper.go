@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -98,10 +97,11 @@ func NewClient(consumerKey, consumerSecret string, options ...Option) (*Client, 
 		token:          "",
 		tokenSecret:    "",
 		timeout:        30 * time.Second,
-		userAgent:      "go/" + runtime.Version() + " chuhlomin/instapaper2rss/v0.1",
-		getNonce:       getNonce,
-		getTimestamp:   getTimestamp,
-		retryConfig:    defaultRetryConfig,
+		userAgent:      "RapidAPI/4.1.5 (Macintosh; OS X/15.3.1) GCDHTTPRequest",
+		// userAgent:      "go/" + runtime.Version() + " chuhlomin/instapaper2rss/v0.1", // well, I've tried
+		getNonce:     getNonce,
+		getTimestamp: getTimestamp,
+		retryConfig:  defaultRetryConfig,
 	}
 
 	for _, option := range options {
