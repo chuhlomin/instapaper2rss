@@ -239,8 +239,11 @@ func (c *Client) callAPI(endpoint string, params map[string]string) (*http.Respo
 		for k, v := range params {
 			form.Add(k, v)
 		}
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.Body = io.NopCloser(strings.NewReader(form.Encode()))
+		body := form.Encode()
+
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+		req.Header.Set("Content-Length", strconv.Itoa(len(body)))
+		req.Body = io.NopCloser(strings.NewReader(body))
 	}
 
 	return c.doWithRetry(req)
