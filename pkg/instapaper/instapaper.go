@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sort"
@@ -350,7 +351,14 @@ func buildAuthorizationHeader(params map[string]string) string {
 }
 
 func getNonce() string {
-	return fmt.Sprintf("%d", time.Now().UnixNano())
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	b := make([]rune, 32)
+	for i := range b {
+		index := rand.Intn(len(letters))
+		b[i] = letters[index]
+	}
+
+	return base64.StdEncoding.EncodeToString([]byte(string(b)))
 }
 
 func getTimestamp() string {
