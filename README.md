@@ -1,5 +1,7 @@
 # Instapaper2RSS
 
+[![rss](https://github.com/chuhlomin/instapaper2rss/actions/workflows/rss.yml/badge.svg)](https://github.com/chuhlomin/instapaper2rss/actions/workflows/rss.yml)
+
 A tool that converts your Instapaper bookmarks into an RSS/Atom feed, allowing you to access your Instapaper articles in any RSS reader.
 
 _Disclaimer: This project is not affiliated with, endorsed by, or in any way officially connected to Instapaper or Cloudflare._
